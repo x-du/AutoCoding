@@ -35,7 +35,7 @@
 //coding
 
 + (NSArray *)codableKeys;
-+ (NSArray *)uncodableKeys;
+//+ (NSArray *)uncodableKeys;
 - (void)setWithCoder:(NSCoder *)aDecoder;
 
 //property access
@@ -45,7 +45,7 @@
 
 //loading / saving
 
-+ (instancetype)objectWithContentsOfFile:(NSString *)path;
-- (BOOL)writeToFile:(NSString *)filePath atomically:(BOOL)useAuxiliaryFile;
+//+ (instancetype)objectWithContentsOfFile:(NSString *)path;
+//- (BOOL)writeToFile:(NSString *)filePath atomically:(BOOL)useAuxiliaryFile;
 
 @end

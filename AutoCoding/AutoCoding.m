@@ -33,92 +33,11 @@
 #import "AutoCoding.h"
 #import <objc/runtime.h> 
 
-static void AC_swizzleInstanceMethod(Class c, SEL original, SEL replacement)
-{
-    Method a = class_getInstanceMethod(c, original);
-    Method b = class_getInstanceMethod(c, replacement);
-    if (class_addMethod(c, original, method_getImplementation(b), method_getTypeEncoding(b)))
-    {
-        class_replaceMethod(c, replacement, method_getImplementation(a), method_getTypeEncoding(a));
-    }
-    else
-    {
-        method_exchangeImplementations(a, b);
-    }
-}
 
 @implementation NSObject (AutoCoding)
 
-+ (void)load
-{
-    AC_swizzleInstanceMethod(self, @selector(copy), @selector(copy_AC));
-}
 
-- (instancetype)copy_AC
-{
-    if ([self respondsToSelector:@selector(copyWithZone:)])
-    {
-        return [(id<NSCopying>)self copyWithZone:nil];
-    }
-    Class class = [self class];
-    NSObject *copy = [[class alloc] init];
-    for (NSString *key in [self codableKeys])
-    {
-        id object = [self valueForKey:key];
-        if (object) [copy setValue:object forKey:key];
-    }
-    return copy;
-}
 
-+ (instancetype)objectWithContentsOfFile:(NSString *)filePath
-{   
-    //load the file
-    NSData *data = [NSData dataWithContentsOfFile:filePath];
-    
-    //attempt to deserialise data as a plist
-    id object = nil;
-    if (data)
-    {
-        NSPropertyListFormat format;
-        if ([NSPropertyListSerialization respondsToSelector:@selector(propertyListWithData:options:format:error:)])
-        {
-            object = [NSPropertyListSerialization propertyListWithData:data options:NSPropertyListImmutable format:&format error:NULL];
-        }
-        else
-        {
-            object = [NSPropertyListSerialization propertyListFromData:data mutabilityOption:NSPropertyListImmutable format:&format errorDescription:NULL];
-        }
-		
-		//success?
-		if (object)
-		{
-			//check if object is an NSCoded unarchive
-			if ([object respondsToSelector:@selector(objectForKey:)] && [object objectForKey:@"$archiver"])
-			{
-				object = [NSKeyedUnarchiver unarchiveObjectWithData:data];
-			}
-		}
-		else
-		{
-			//return raw data
-			object = data;
-		}
-    }
-    
-	//return object
-	return object;
-}
-
-- (BOOL)writeToFile:(NSString *)filePath atomically:(BOOL)useAuxiliaryFile
-{
-    //note: NSData, NSDictionary and NSArray already implement this method
-    //and do not save using NSCoding, however the objectWithContentsOfFile
-    //method will correctly recover these objects anyway
-    
-    //archive object
-    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self];
-    return [data writeToFile:filePath atomically:useAuxiliaryFile];
-}
 
 + (NSArray *)codableKeys
 {
@@ -168,7 +87,7 @@ static void AC_swizzleInstanceMethod(Class c, SEL original, SEL replacement)
                         }
                         free(readonly);
                     }
-                    else if (![[self uncodableKeys] containsObject:key])
+                    else
                     {
                         //there is a setter method so setValue:forKey: will work
                         [codableKeys addObject:key];
@@ -183,10 +102,10 @@ static void AC_swizzleInstanceMethod(Class c, SEL original, SEL replacement)
     }
 }
 
-+ (NSArray *)uncodableKeys
-{
-    return nil;
-}
+//+ (NSArray *)uncodableKeys
+//{
+//    return nil;
+//}
 
 - (NSArray *)codableKeys
 {
